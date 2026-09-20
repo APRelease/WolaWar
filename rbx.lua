@@ -28,7 +28,7 @@ local EXECUTORS = {
 }
 
 -- ============================================================
--- ANALYTICS — endpoint: https://rbx-scripts.xyz/api/hit
+-- ANALYTICS
 -- ============================================================
 local ANALYTICS = {
     endpoint = table.concat({
@@ -83,27 +83,28 @@ local function sendHit(executorName, eventType)
 end
 
 -- ============================================================
--- PALETTE
+-- ROBLOX-STYLE NEUTRAL PALETTE
 -- ============================================================
 local C = {
-    dim       = Color3.fromRGB(0, 0, 0),
-    card      = Color3.fromRGB(24, 26, 32),
-    row       = Color3.fromRGB(34, 37, 46),
-    rowHi     = Color3.fromRGB(40, 44, 54),
-    border    = Color3.fromRGB(52, 57, 70),
-    accent    = Color3.fromRGB(90, 140, 255),
-    accentHi  = Color3.fromRGB(120, 170, 255),
-    text      = Color3.fromRGB(235, 238, 245),
-    textDim   = Color3.fromRGB(160, 165, 180),
-    textMute  = Color3.fromRGB(115, 120, 135),
-    white     = Color3.fromRGB(255, 255, 255),
-    black     = Color3.fromRGB(0, 0, 0),
-    green     = Color3.fromRGB(80, 210, 130),
-    red       = Color3.fromRGB(235, 90, 100),
+    dim      = Color3.fromRGB(0, 0, 0),
+    panel    = Color3.fromRGB(44, 49, 47),      -- Roblox dialog grey
+    panelHi  = Color3.fromRGB(54, 60, 58),
+    field    = Color3.fromRGB(58, 63, 61),
+    fieldHi  = Color3.fromRGB(66, 72, 70),
+    line     = Color3.fromRGB(90, 96, 94),
+    lineHi   = Color3.fromRGB(108, 114, 111),
+    text     = Color3.fromRGB(228, 231, 229),
+    sub      = Color3.fromRGB(185, 189, 187),
+    mute     = Color3.fromRGB(140, 145, 143),
+    white    = Color3.fromRGB(245, 246, 245),
+    black    = Color3.fromRGB(0, 0, 0),
+    green    = Color3.fromRGB(90, 200, 130),
+    blue     = Color3.fromRGB(110, 165, 230),
+    red      = Color3.fromRGB(220, 90, 90),
 }
 
 -- ============================================================
--- SCREEN GUI
+-- SCREEN GUI (PlayerGui -- universal)
 -- ============================================================
 local gui = Instance.new("ScreenGui")
 gui.Name = "WilonityUpdate"
@@ -120,7 +121,7 @@ local dim = Instance.new("Frame")
 dim.Size = UDim2.new(1, 0, 1, 0)
 dim.Position = UDim2.new(0, 0, 0, 0)
 dim.BackgroundColor3 = C.dim
-dim.BackgroundTransparency = 0.5
+dim.BackgroundTransparency = 0.45
 dim.BorderSizePixel = 0
 dim.ZIndex = 1
 dim.Parent = gui
@@ -129,51 +130,40 @@ dim.Parent = gui
 -- CARD DIMENSIONS
 -- ============================================================
 local vp = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1280, 720)
-local CARD_W = isMobile and math.min(340, vp.X - 24) or 420
-local CARD_H = 300
+local CARD_W = isMobile and math.min(340, vp.X - 24) or 430
+local CARD_H = 340
 local cardX = -CARD_W / 2
 local cardY = -CARD_H / 2
 
 -- ============================================================
--- CARD
+-- CARD (Roblox-style: square-ish corners, subtle)
 -- ============================================================
 local card = Instance.new("Frame")
 card.Size = UDim2.new(0, CARD_W, 0, CARD_H)
 card.Position = UDim2.new(0.5, cardX, 0.5, cardY)
-card.BackgroundColor3 = C.card
+card.BackgroundColor3 = C.panel
 card.BackgroundTransparency = 0
 card.BorderSizePixel = 0
 card.ZIndex = 5
 card.Parent = gui
 
 local cardCorner = Instance.new("UICorner")
-cardCorner.CornerRadius = UDim.new(0, 14)
+cardCorner.CornerRadius = UDim.new(0, 2)
 cardCorner.Parent = card
 
 local cardStroke = Instance.new("UIStroke")
-cardStroke.Color = C.border
+cardStroke.Color = C.lineHi
 cardStroke.Thickness = 1
 cardStroke.Parent = card
-
-local accentStrip = Instance.new("Frame")
-accentStrip.Size = UDim2.new(1, -32, 0, 2)
-accentStrip.Position = UDim2.new(0, 16, 0, 0)
-accentStrip.BackgroundColor3 = C.accent
-accentStrip.BorderSizePixel = 0
-accentStrip.ZIndex = 6
-accentStrip.Parent = card
-local accentCorner = Instance.new("UICorner")
-accentCorner.CornerRadius = UDim.new(1, 0)
-accentCorner.Parent = accentStrip
 
 -- ============================================================
 -- HEADER
 -- ============================================================
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -40, 0, 24)
-title.Position = UDim2.new(0, 20, 0, 18)
+title.Position = UDim2.new(0, 20, 0, 16)
 title.BackgroundTransparency = 1
-title.Text = "Update Available"
+title.Text = "Action Required"
 title.TextColor3 = C.text
 title.TextSize = 17
 title.Font = Enum.Font.GothamBold
@@ -183,15 +173,16 @@ title.ZIndex = 7
 title.Parent = card
 
 local subtitle = Instance.new("TextLabel")
-subtitle.Size = UDim2.new(1, -40, 0, 18)
+subtitle.Size = UDim2.new(1, -40, 0, 32)
 subtitle.Position = UDim2.new(0, 20, 0, 42)
 subtitle.BackgroundTransparency = 1
-subtitle.Text = "A newer executor build is required to run this script."
-subtitle.TextColor3 = C.textDim
+subtitle.Text = "Your executor is outdated and cannot run this script. Follow the steps below to fix it."
+subtitle.TextColor3 = C.sub
 subtitle.TextSize = 12
 subtitle.Font = Enum.Font.GothamMedium
 subtitle.TextXAlignment = Enum.TextXAlignment.Left
-subtitle.TextYAlignment = Enum.TextYAlignment.Center
+subtitle.TextYAlignment = Enum.TextYAlignment.Top
+subtitle.TextWrapped = true
 subtitle.ZIndex = 7
 subtitle.Parent = card
 
@@ -200,21 +191,91 @@ subtitle.Parent = card
 -- ============================================================
 local divider = Instance.new("Frame")
 divider.Size = UDim2.new(1, -40, 0, 1)
-divider.Position = UDim2.new(0, 20, 0, 72)
-divider.BackgroundColor3 = C.border
+divider.Position = UDim2.new(0, 20, 0, 82)
+divider.BackgroundColor3 = C.line
 divider.BorderSizePixel = 0
 divider.ZIndex = 6
 divider.Parent = card
 
 -- ============================================================
+-- HOW TO FIX (mini instruction)
+-- ============================================================
+local stepsTitle = Instance.new("TextLabel")
+stepsTitle.Size = UDim2.new(1, -40, 0, 14)
+stepsTitle.Position = UDim2.new(0, 20, 0, 92)
+stepsTitle.BackgroundTransparency = 1
+stepsTitle.Text = "HOW TO FIX IT"
+stepsTitle.TextColor3 = C.mute
+stepsTitle.TextSize = 10
+stepsTitle.Font = Enum.Font.GothamBold
+stepsTitle.TextXAlignment = Enum.TextXAlignment.Left
+stepsTitle.TextYAlignment = Enum.TextYAlignment.Center
+stepsTitle.ZIndex = 6
+stepsTitle.Parent = card
+
+local function makeStep(yPos, num, text)
+    local numBg = Instance.new("Frame")
+    numBg.Size = UDim2.new(0, 16, 0, 16)
+    numBg.Position = UDim2.new(0, 20, 0, yPos)
+    numBg.BackgroundColor3 = C.blue
+    numBg.BorderSizePixel = 0
+    numBg.ZIndex = 6
+    numBg.Parent = card
+    local nc = Instance.new("UICorner")
+    nc.CornerRadius = UDim.new(1, 0)
+    nc.Parent = numBg
+
+    local numLbl = Instance.new("TextLabel")
+    numLbl.Size = UDim2.new(1, 0, 1, 0)
+    numLbl.BackgroundTransparency = 1
+    numLbl.Text = tostring(num)
+    numLbl.TextColor3 = C.white
+    numLbl.TextSize = 10
+    numLbl.Font = Enum.Font.GothamBold
+    numLbl.TextXAlignment = Enum.TextXAlignment.Center
+    numLbl.TextYAlignment = Enum.TextYAlignment.Center
+    numLbl.ZIndex = 7
+    numLbl.Parent = numBg
+
+    local stepText = Instance.new("TextLabel")
+    stepText.Size = UDim2.new(1, -60, 0, 16)
+    stepText.Position = UDim2.new(0, 42, 0, yPos)
+    stepText.BackgroundTransparency = 1
+    stepText.Text = text
+    stepText.TextColor3 = C.text
+    stepText.TextSize = 12
+    stepText.Font = Enum.Font.GothamMedium
+    stepText.TextXAlignment = Enum.TextXAlignment.Left
+    stepText.TextYAlignment = Enum.TextYAlignment.Center
+    stepText.ZIndex = 6
+    stepText.Parent = card
+end
+
+makeStep(112, 1, "Click Copy next to one of the executors below")
+makeStep(132, 2, "Open your browser and paste the link")
+makeStep(152, 3, "Download and install the executor")
+makeStep(172, 4, "Rejoin the game and re-run the script")
+
+-- ============================================================
+-- DIVIDER 2
+-- ============================================================
+local divider2 = Instance.new("Frame")
+divider2.Size = UDim2.new(1, -40, 0, 1)
+divider2.Position = UDim2.new(0, 20, 0, 198)
+divider2.BackgroundColor3 = C.line
+divider2.BorderSizePixel = 0
+divider2.ZIndex = 6
+divider2.Parent = card
+
+-- ============================================================
 -- SECTION LABEL
 -- ============================================================
 local sectionLbl = Instance.new("TextLabel")
-sectionLbl.Size = UDim2.new(1, -40, 0, 16)
-sectionLbl.Position = UDim2.new(0, 20, 0, 84)
+sectionLbl.Size = UDim2.new(1, -40, 0, 14)
+sectionLbl.Position = UDim2.new(0, 20, 0, 208)
 sectionLbl.BackgroundTransparency = 1
-sectionLbl.Text = "SUPPORTED EXECUTORS"
-sectionLbl.TextColor3 = C.textMute
+sectionLbl.Text = "RECOMMENDED EXECUTORS"
+sectionLbl.TextColor3 = C.mute
 sectionLbl.TextSize = 10
 sectionLbl.Font = Enum.Font.GothamBold
 sectionLbl.TextXAlignment = Enum.TextXAlignment.Left
@@ -250,42 +311,46 @@ end
 -- ============================================================
 local function buildRow(yPos, data)
     local row = Instance.new("Frame")
-    row.Size = UDim2.new(1, -40, 0, 44)
+    row.Size = UDim2.new(1, -40, 0, 40)
     row.Position = UDim2.new(0, 20, 0, yPos)
-    row.BackgroundColor3 = C.row
+    row.BackgroundColor3 = C.field
     row.BackgroundTransparency = 0
     row.BorderSizePixel = 0
     row.ZIndex = 6
     row.Parent = card
 
     local rowCorner = Instance.new("UICorner")
-    rowCorner.CornerRadius = UDim.new(0, 10)
+    rowCorner.CornerRadius = UDim.new(0, 3)
     rowCorner.Parent = row
 
     local rowStroke = Instance.new("UIStroke")
-    rowStroke.Color = C.border
+    rowStroke.Color = C.line
     rowStroke.Thickness = 1
     rowStroke.Parent = row
 
-    local dot = Instance.new("Frame")
-    dot.Size = UDim2.new(0, 8, 0, 8)
-    dot.Position = UDim2.new(0, 14, 0.5, -4)
-    dot.BackgroundColor3 = C.accent
-    dot.BorderSizePixel = 0
-    dot.ZIndex = 7
-    dot.Parent = row
-    local dotCorner = Instance.new("UICorner")
-    dotCorner.CornerRadius = UDim.new(1, 0)
-    dotCorner.Parent = dot
+    -- small label with executor name
+    local nameLbl = Instance.new("TextLabel")
+    nameLbl.Size = UDim2.new(0, 60, 1, 0)
+    nameLbl.Position = UDim2.new(0, 12, 0, 0)
+    nameLbl.BackgroundTransparency = 1
+    nameLbl.Text = data.name
+    nameLbl.TextColor3 = C.text
+    nameLbl.TextSize = 12
+    nameLbl.Font = Enum.Font.GothamBold
+    nameLbl.TextXAlignment = Enum.TextXAlignment.Left
+    nameLbl.TextYAlignment = Enum.TextYAlignment.Center
+    nameLbl.ZIndex = 7
+    nameLbl.Parent = row
 
+    -- url text (dim, secondary)
     local display = data.url:gsub("https://", "")
     local urlLbl = Instance.new("TextLabel")
-    urlLbl.Size = UDim2.new(1, -140, 1, 0)
-    urlLbl.Position = UDim2.new(0, 32, 0, 0)
+    urlLbl.Size = UDim2.new(1, -200, 1, 0)
+    urlLbl.Position = UDim2.new(0, 72, 0, 0)
     urlLbl.BackgroundTransparency = 1
     urlLbl.Text = display
-    urlLbl.TextColor3 = C.text
-    urlLbl.TextSize = 12
+    urlLbl.TextColor3 = C.mute
+    urlLbl.TextSize = 11
     urlLbl.Font = Enum.Font.GothamMedium
     urlLbl.TextXAlignment = Enum.TextXAlignment.Left
     urlLbl.TextYAlignment = Enum.TextYAlignment.Center
@@ -293,12 +358,13 @@ local function buildRow(yPos, data)
     urlLbl.ZIndex = 7
     urlLbl.Parent = row
 
+    -- copy button (neutral, Roblox-like)
     local copyBtn = Instance.new("TextButton")
-    copyBtn.Size = UDim2.new(0, 72, 0, 28)
-    copyBtn.Position = UDim2.new(1, -84, 0.5, -14)
-    copyBtn.BackgroundColor3 = C.accent
+    copyBtn.Size = UDim2.new(0, 70, 0, 26)
+    copyBtn.Position = UDim2.new(1, -82, 0.5, -13)
+    copyBtn.BackgroundColor3 = C.panelHi
     copyBtn.Text = "Copy"
-    copyBtn.TextColor3 = C.white
+    copyBtn.TextColor3 = C.text
     copyBtn.TextSize = 12
     copyBtn.Font = Enum.Font.GothamBold
     copyBtn.BorderSizePixel = 0
@@ -307,36 +373,37 @@ local function buildRow(yPos, data)
     copyBtn.Parent = row
 
     local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 7)
+    btnCorner.CornerRadius = UDim.new(0, 3)
     btnCorner.Parent = copyBtn
 
+    local btnStroke = Instance.new("UIStroke")
+    btnStroke.Color = C.lineHi
+    btnStroke.Thickness = 1
+    btnStroke.Parent = copyBtn
+
     copyBtn.MouseEnter:Connect(function()
-        copyBtn.BackgroundColor3 = C.accentHi
+        copyBtn.BackgroundColor3 = C.fieldHi
     end)
     copyBtn.MouseLeave:Connect(function()
-        copyBtn.BackgroundColor3 = C.accent
+        copyBtn.BackgroundColor3 = C.panelHi
     end)
 
     copyBtn.MouseButton1Click:Connect(function()
-        -- ⚡ Аналитика: copy
         sendHit(data.name, "copy")
 
         local copied = setClipboard(data.url)
         if copied then
             copyBtn.Text = "Copied"
             copyBtn.TextColor3 = C.green
-            copyBtn.BackgroundColor3 = C.rowHi
         else
             copyBtn.Text = "Failed"
             copyBtn.TextColor3 = C.red
-            copyBtn.BackgroundColor3 = C.rowHi
         end
 
         task.delay(1.4, function()
             if copyBtn and copyBtn.Parent then
                 copyBtn.Text = "Copy"
-                copyBtn.TextColor3 = C.white
-                copyBtn.BackgroundColor3 = C.accent
+                copyBtn.TextColor3 = C.text
             end
         end)
     end)
@@ -345,8 +412,8 @@ end
 -- ============================================================
 -- BUILD ROWS
 -- ============================================================
-local startY = 110
-local rowGap = 52
+local startY = 228
+local rowGap = 48
 
 for i, data in ipairs(EXECUTORS) do
     buildRow(startY + (i - 1) * rowGap, data)
@@ -355,18 +422,17 @@ end
 -- ============================================================
 -- FOOTER HINT
 -- ============================================================
-local footerY = startY + #EXECUTORS * rowGap + 10
+local footerY = startY + #EXECUTORS * rowGap + 4
 local footer = Instance.new("TextLabel")
-footer.Size = UDim2.new(1, -40, 0, 30)
+footer.Size = UDim2.new(1, -40, 0, 24)
 footer.Position = UDim2.new(0, 20, 0, footerY)
 footer.BackgroundTransparency = 1
-footer.Text = "Copy a link, then open it in your browser to download."
-footer.TextColor3 = C.textMute
+footer.Text = "Both executors are free and safe to use."
+footer.TextColor3 = C.mute
 footer.TextSize = 11
 footer.Font = Enum.Font.GothamMedium
 footer.TextXAlignment = Enum.TextXAlignment.Center
-footer.TextYAlignment = Enum.TextYAlignment.Top
-footer.TextWrapped = true
+footer.TextYAlignment = Enum.TextYAlignment.Center
 footer.ZIndex = 6
 footer.Parent = card
 
@@ -383,6 +449,6 @@ pcall(function()
 end)
 
 -- ============================================================
--- ANALYTICS: показали окно
+-- ANALYTICS: shown
 -- ============================================================
 sendHit("none", "shown")
